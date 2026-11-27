@@ -1,0 +1,29 @@
+# Форк BenkiNew/Baileys-benkinew (гілка maintained): лише збірка, lint і тести. Успадковані з upstream workflow
+# (релізи, pr-comment з pull_request_target, stale, оновлення proto/версії, e2e з токенами) видалено свідомо:
+# секретів у форку немає, права токена — лише читання, дії підключені за SHA (політика безпеки репозиторіїв 15.11.2026).
+name: CI
+
+on:
+  push:
+    branches: [maintained]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 24.x
+      - run: |
+          corepack enable
+          corepack prepare yarn@4.9.2 --activate
+      - run: yarn install --immutable
+      - run: yarn lint
+      - run: yarn build
+      - run: yarn test
