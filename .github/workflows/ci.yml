@@ -27,3 +27,11 @@ jobs:
       - run: yarn lint
       - run: yarn build
       - run: yarn test
+      - run: yarn pack --out baileys-benkinew.tgz && sha256sum baileys-benkinew.tgz | tee baileys-benkinew.tgz.sha256
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: baileys-benkinew-${{ github.sha }}
+          path: |
+            baileys-benkinew.tgz
+            baileys-benkinew.tgz.sha256
+          retention-days: 30
