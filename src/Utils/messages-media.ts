@@ -7,7 +7,7 @@ import type { Agent } from 'https'
 import type { IAudioMetadata } from 'music-metadata'
 import { tmpdir } from 'os'
 import { join } from 'path'
-import { Readable, Transform } from 'stream'
+import { pipeline, Readable, Transform } from 'stream'
 import { URL } from 'url'
 import { proto } from '../../WAProto/index.js'
 import { DEFAULT_ORIGIN, MEDIA_HKDF_KEY_MAPPING, MEDIA_PATH_MAP, type MediaType } from '../Defaults'
@@ -654,12 +654,15 @@ export const downloadEncryptedContent = async (
 			}
 		}
 	})
-	// pipe() does not forward 'error' events from source to destination —
-	// without this, a dropped connection or malformed response on `fetched`
-	// crashes the process (unhandled 'error' on the source) instead of
-	// surfacing as an error on the returned stream that callers can catch.
-	fetched.on('error', err => output.destroy(err))
-	return fetched.pipe(output, { end: true })
+	// Adapted from WhiskeySockets/Baileys#2716 (bd99518737f4): pipe() does not forward errors from the source stream,
+	// so a dropped connection crashes the process or hangs the caller. pipeline() forwards transport and decrypt
+	// failures to `output` and cancels the HTTP response when the consumer closes the stream.
+	pipeline(fetched, output, error => {
+		if (error && !output.destroyed) {
+			output.destroy(error)
+		}
+	})
+	return output
 }
 
 export function extensionForMediaMessage(message: WAMessageContent) {
